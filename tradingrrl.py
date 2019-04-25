@@ -262,28 +262,7 @@ class LayeredRRL(TradingRRL):
             self.all_prices.append(self.p[::-1][i])
             last_W = self.W
 
-    def optimization_layer(self):
-        """ We want to maximize a risk measure sigma and a utility function U
-            defined, respectively by:
-
-            sigma = \sum_{i=0->n} (R_i)^2 I(R_i < 0) / \sum_{i=0->n} (R_i)^2 I(R_i>0)
-            U = \alpha * (1 - \nu) * \hat{R} - nu * sigma
-
-            The strategy raw return at time i is R_i = W_i - W_{i-1} and the cumulative
-            profit at time is is W_i and \hat{R} = W_N / N is the average profit per
-            time interval
-
-            \nu is the trader's personal risk aversion
-
-            The goal is to find max(U) using random search. We try a setting of 15 values
-            for each params while fixing the others, we then keep the maximum for each of
-            them. The 15 values are picked from a normal distribution around the starting
-            value
-            ------------------------------------------------------------------------------
-        """
-
-
-    def train(self):
+    def train(self, optimization=False, optimization_i=None):
         initial_t = 63000
         self.T = 1000
         T_test = 1000
@@ -296,7 +275,10 @@ class LayeredRRL(TradingRRL):
         self.load_csv(fname)
         self.set_t_p_r()
 
-        n_batch = (initial_t - self.T) // T_test
+        if optimization:
+            n_batch = optimization_i
+        else:
+            n_batch = (initial_t - self.T) // T_test
 
         for i in range(n_batch):
             # Train data goes from init_t - T_test * i to init_t - T_test * i - T
@@ -310,7 +292,11 @@ class LayeredRRL(TradingRRL):
 
             # Fit hyper-parameters using the optimization layer
             if i % 10000:
-                self.optimization_layer()
+                learning_rate, stop_loss, sigma, n_epoch = optimization_layer(i)
+                self.rho = learning_rate
+                self.stop_loss = stop_loss
+                self.sigma = sigma
+                self.n_epoch = n_epoch
 
             # Once the agent is trained for n_epoch, we can test it on the next
             # T_test time steps. Test data goes from init_t - T_test * i - T to
@@ -350,6 +336,108 @@ class LayeredRRL(TradingRRL):
             plt.savefig("img/rrl_prediction_tc005_{}_{}_{}.png".format(
                 test_init_t - T_test, test_init_t, self.save_path), dpi=300)
             plt.close()
+
+
+def optimization_layer(optimization_i, nu=0.5, alpha=1.):
+    """ We want to maximize a risk measure sigma and a utility function U
+        defined, respectively by:
+
+        sigma = \sum_{i=0->n} (R_i)^2 I(R_i < 0) / \sum_{i=0->n} (R_i)^2 I(R_i>0)
+        U = \alpha * (1 - \nu) * \hat{R} - nu * sigma
+
+        The strategy raw return at time i is R_i = W_i - W_{i-1} and the cumulative
+        profit at time is is W_i and \hat{R} = W_N / N is the average profit per
+        time interval
+
+        \nu is the trader's personal risk aversion
+
+        The goal is to find max(U) using random search. We try values
+        for each params while fixing the others, we then keep the ones that maximize
+        utility for each of them.
+        ------------------------------------------------------------------------------
+    :returns:
+        hyper-parameters with maximal utility
+    """
+    stop_loss = 0.3
+    sigma = 0.2
+    n_epoch = 1000
+    stop_losses = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] # 0.3
+    learning_rates = [0.1, 0.3, 1., 1.5]
+    transaction_costs = [0, 0.01, 0.05, 0.1, 0.2, 0.5] # 0.2
+    n_epochs = [0, 100, 500, 1000, 2000, 4000] # 1000
+    data = []
+    for i, learning_rate in enumerate(learning_rates):
+        rrl = LayeredRRL(save_path='learning_rate_{}'.format(i))
+        rrl.stop_loss = stop_loss
+        rrl.rho = learning_rate
+        rrl.sigma = sigma
+        rrl.n_epoch = n_epoch
+        rrl.train(optimization=True, optimization_i=optimization_i)
+
+        # Compute utility
+        rs = np.diff(rrl.all_W)
+        sigma = np.sum((rs ** 2) * (rs < 0)) / np.sum((rs ** 2) * (rs >= 0))
+        hat_r = np.cumsum(rrl.all_W) / len(rrl.all_W)
+        U = alpha * (1 - nu) * hat_r - nu * sigma
+        data.append(U)
+
+    learning_rate = learning_rates[data.index(max(data))]
+
+    data = []
+    for i, stop_loss in enumerate(stop_losses):
+        rrl = LayeredRRL(save_path='learning_rate_{}'.format(i))
+        rrl.stop_loss = stop_loss
+        rrl.rho = learning_rate
+        rrl.sigma = sigma
+        rrl.n_epoch = n_epoch
+        rrl.train(optimization=True, optimization_i=optimization_i)
+
+        # Compute utility
+        rs = np.diff(rrl.all_W)
+        sigma = np.sum((rs ** 2) * (rs < 0)) / np.sum((rs ** 2) * (rs >= 0))
+        hat_r = np.cumsum(rrl.all_W) / len(rrl.all_W)
+        U = alpha * (1 - nu) * hat_r - nu * sigma
+        data.append(U)
+
+    stop_loss = stop_losses[data.index(max(data))]
+
+    data = []
+    for i, sigma in enumerate(transaction_costs):
+        rrl = LayeredRRL(save_path='learning_rate_{}'.format(i))
+        rrl.stop_loss = stop_loss
+        rrl.rho = learning_rate
+        rrl.sigma = sigma
+        rrl.n_epoch = n_epoch
+        rrl.train(optimization=True, optimization_i=optimization_i)
+
+        # Compute utility
+        rs = np.diff(rrl.all_W)
+        sigma = np.sum((rs ** 2) * (rs < 0)) / np.sum((rs ** 2) * (rs >= 0))
+        hat_r = np.cumsum(rrl.all_W) / len(rrl.all_W)
+        U = alpha * (1 - nu) * hat_r - nu * sigma
+        data.append(U)
+
+    sigma = transaction_costs[data.index(max(data))]
+
+    data = []
+    for i, n_epoch in enumerate(n_epochs):
+        rrl = LayeredRRL(save_path='learning_rate_{}'.format(i))
+        rrl.stop_loss = stop_loss
+        rrl.rho = learning_rate
+        rrl.sigma = sigma
+        rrl.n_epoch = n_epoch
+        rrl.train(optimization=True, optimization_i=optimization_i)
+
+        # Compute utility
+        rs = np.diff(rrl.all_W)
+        sigma = np.sum((rs ** 2) * (rs < 0)) / np.sum((rs ** 2) * (rs >= 0))
+        hat_r = np.cumsum(rrl.all_W) / len(rrl.all_W)
+        U = alpha * (1 - nu) * hat_r - nu * sigma
+        data.append(U)
+
+    n_epoch = n_epochs[data.index(max(data))]
+
+    return learning_rate, stop_loss, sigma, n_epoch
 
 
 if __name__ == "__main__":

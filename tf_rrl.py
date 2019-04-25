@@ -258,12 +258,12 @@ plt.close()
 
 if __name__ == '__main__':
     _is_deep = True
-    _is_lstm = True
+    _is_lstm = False
     _is_adam = True
     _c = 0.0005
     _learning_rate = 0.001
     _n_epoch = 1000
-    path = 'lstm_deep'
+    path = 'rnn_deep'
     rrl = RRL(is_deep=_is_deep, is_lstm=_is_lstm, is_adam=_is_adam, m=100, T=1000, training_c=_c,
               testing_c=0.0001, learning_rate=_learning_rate, n_epoch=_n_epoch)
     data = []
@@ -325,72 +325,96 @@ if __name__ == '__main__':
     _n_epoch = _n_epoch_data_return[_n_epoch_data_return.index(max(_n_epoch_data_return))][1]
 
 
-    """
-    
-    with open('img/tf_imgs/data.pickle', 'rb') as f:
+    with open('img/tf_imgs/important_graph/data.pickle', 'rb') as f:
         data = pickle.load(f)
-    with open('img/tf_imgs/data_rnn.pickle', 'rb') as f:
+    with open('img/tf_imgs/important_graph/data_rnn.pickle', 'rb') as f:
         data_rnn = pickle.load(f)
-    with open('img/tf_imgs/data_rnn_sgd.pickle', 'rb') as f:
+    with open('img/tf_imgs/important_graph/data_rnn_sgd.pickle', 'rb') as f:
         data_rnn_sgd = pickle.load(f)
-    with open('img/tf_imgs/data_lstm_sgd.pickle', 'rb') as f:
+    with open('img/tf_imgs/important_graph/data_lstm_sgd.pickle', 'rb') as f:
         data_lstm_sgd = pickle.load(f)
+    with open('img/tf_imgs/important_graph/data_rnn_deep.pickle', 'rb') as f:
+        data_rnn_deep = pickle.load(f)
+    with open('img/tf_imgs/important_graph/data_lstm_deep.pickle', 'rb') as f:
+        data_lstm_deep = pickle.load(f)
+
     # Scatter plot
-    fig, ax = plt.subplots(2, 3)
+    fig, ax = plt.subplots(3, 3)
 
     # Varying the transaction cost
     ax[0][0].scatter([d[-1] for d in data[:4]], [d[-2] for d in data[:4]], c='blue')
     ax[0][0].scatter([d[-1] for d in data_rnn[:4]], [d[-2] for d in data_rnn[:4]], c='green')
-    ax[0][0].set_xlabel("Risk")
-    ax[0][0].set_ylabel("Return")
-    ax[0][0].set_title('Varying transaction cost')
+    # ax[0][0].set_xlabel("Risk")
+    # ax[0][0].set_ylabel("Return")
     ax[0][0].grid(True)
 
     # Varying the learning rate
     ax[0][1].scatter([d[-1] for d in data[4:8]], [d[-2] for d in data[4:8]], c='blue')
     ax[0][1].scatter([d[-1] for d in data_rnn[4:8]], [d[-2] for d in data_rnn[4:8]], c='green')
-    ax[0][1].set_xlabel("Risk")
-    ax[0][1].set_ylabel("Return")
-    ax[0][1].set_title('Varying learning rate')
+    # ax[0][1].set_xlabel("Risk")
+    # ax[0][1].set_ylabel("Return")
     ax[0][1].grid(True)
 
     # Varying number epochs
     ax[0][2].scatter([d[-1] for d in data[8:]], [d[-2] for d in data[8:]], c='blue')
     ax[0][2].scatter([d[-1] for d in data_rnn[8:]], [d[-2] for d in data_rnn[8:]], c='green')
-    ax[0][2].set_xlabel("Risk")
-    ax[0][2].set_ylabel("Return")
-    ax[0][2].set_title('Varying # epochs')
+    # ax[0][2].set_xlabel("Risk")
+    # ax[0][2].set_ylabel("Return")
     ax[0][2].grid(True)
 
 
     # GD vs Adam
     ax[1][0].scatter([d[-1] for d in data_lstm_sgd[:4]], [d[-2] for d in data_lstm_sgd[:4]], c='blue')
     ax[1][0].scatter([d[-1] for d in data_rnn_sgd[:4]], [d[-2] for d in data_rnn_sgd[:4]], c='green')
-    ax[1][0].set_xlabel("Risk")
-    ax[1][0].set_ylabel("Return")
-    ax[1][0].set_title('Varying transaction cost')
+    # ax[1][0].set_xlabel("Risk")
+    # ax[1][0].set_ylabel("Return")
     ax[1][0].grid(True)
 
     # Varying the learning rate
     ax[1][1].scatter([d[-1] for d in data_lstm_sgd[4:8]], [d[-2] for d in data_lstm_sgd[4:8]], c='blue')
     ax[1][1].scatter([d[-1] for d in data_rnn_sgd[4:8]], [d[-2] for d in data_rnn_sgd[4:8]], c='green')
-    ax[1][1].set_xlabel("Risk")
-    ax[1][1].set_ylabel("Return")
-    ax[1][1].set_title('Varying learning rate')
+    # ax[1][1].set_xlabel("Risk")
+    # ax[1][1].set_ylabel("Return")
     ax[1][1].grid(True)
 
     # Varying number epochs
     ax[1][2].scatter([d[-1] for d in data_lstm_sgd[9:]], [d[-2] for d in data_lstm_sgd[9:]], c='blue')
     ax[1][2].scatter([d[-1] for d in data_rnn_sgd[9:]], [d[-2] for d in data_rnn_sgd[9:]], c='green')
-    ax[1][2].set_xlabel("Risk")
-    ax[1][2].set_ylabel("Return")
-    ax[1][2].set_title('Varying # epochs')
+    # ax[1][2].set_xlabel("Risk")
+    # ax[1][2].set_ylabel("Return")
     ax[1][2].grid(True)
-    plt.tight_layout()
-
-    """
 
     # Deep network vs no deep
+    ax[2][0].scatter([d[-1] for d in data_lstm_deep[:4]], [d[-2] for d in data_lstm_deep[:4]], c='blue')
+    ax[2][0].scatter([d[-1] for d in data_rnn_deep[:4]], [d[-2] for d in data_rnn_deep[:4]], c='green')
+    # ax[2][0].set_xlabel("Risk")
+    # ax[2][0].set_ylabel("Return")
+    ax[2][0].grid(True)
+
+    # Varying the learning rate
+    ax[2][1].scatter([d[-1] for d in data_lstm_deep[4:8]], [d[-2] for d in data_lstm_deep[4:8]], c='blue')
+    ax[2][1].scatter([d[-1] for d in data_rnn_deep[4:8]], [d[-2] for d in data_rnn_deep[4:8]], c='green')
+    # ax[2][1].set_xlabel("Risk")
+    # ax[2][1].set_ylabel("Return")
+    ax[2][1].grid(True)
+
+    # Varying number epochs
+    ax[2][2].scatter([d[-1] for d in data_lstm_deep[8:]], [d[-2] for d in data_lstm_deep[8:]], c='blue')
+    ax[2][2].scatter([d[-1] for d in data_rnn_deep[8:]], [d[-2] for d in data_rnn_deep[8:]], c='green')
+    # ax[2][2].set_xlabel("Risk")
+    # ax[2][2].set_ylabel("Return")
+    ax[2][2].grid(True)
+
+    ax[0][0].set_title('Varying transaction cost')
+    ax[0][1].set_title('Varying learning rate')
+    ax[0][2].set_title('Varying # epochs')
+
+    ax[0][0].set_ylabel('NN + Adam')
+    ax[1][0].set_ylabel('NN + GD')
+    ax[2][0].set_ylabel('DNN + Adam')
+    plt.tight_layout()
+
+
 
 """
 import pickle
